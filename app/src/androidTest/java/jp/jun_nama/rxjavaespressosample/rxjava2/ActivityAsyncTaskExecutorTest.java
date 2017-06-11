@@ -14,12 +14,12 @@
  * limitations under the License.
  */
 
-package jp.jun_nama.rxjavaespressosample;
+package jp.jun_nama.rxjavaespressosample.rxjava2;
 
 
+import android.os.AsyncTask;
 import android.support.test.InstrumentationRegistry;
-import android.support.test.espresso.Espresso;
-import android.support.test.espresso.idling.CountingIdlingResource;
+import android.support.test.espresso.matcher.ViewMatchers;
 import android.support.test.rule.ActivityTestRule;
 import android.support.test.runner.AndroidJUnit4;
 import android.support.test.uiautomator.By;
@@ -33,6 +33,9 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import io.reactivex.plugins.RxJavaPlugins;
+import io.reactivex.schedulers.Schedulers;
+import jp.jun_nama.rxjavaespressosample.R;
+import jp.jun_nama.rxjavaespressosample.RxJava2Activity;
 
 import static android.support.test.espresso.Espresso.onView;
 import static android.support.test.espresso.action.ViewActions.click;
@@ -41,8 +44,7 @@ import static android.support.test.espresso.matcher.ViewMatchers.withId;
 import static android.support.test.espresso.matcher.ViewMatchers.withText;
 
 @RunWith(AndroidJUnit4.class)
-public class RxJava2ActivityCountingIdlingResourceTest {
-    private CountingIdlingResource rxIdlingResource;
+public class ActivityAsyncTaskExecutorTest {
     private UiDevice uiDevice;
 
     @Rule
@@ -54,23 +56,21 @@ public class RxJava2ActivityCountingIdlingResourceTest {
         setUpUiAutomator();
 
         // RxJava Synchronization in Espresso
-        rxIdlingResource = new CountingIdlingResource("RxJava2", /* debug */ true);
-        decorateScheduledActionWithIdlingResource(rxIdlingResource);
-        Espresso.registerIdlingResources(rxIdlingResource);
+        replaceRxSchedulerWithAsyncTask();
 
         // launch Activity Under Test
         activityTestRule.launchActivity(null);
     }
 
+
     @After
     public void tearDown() throws Exception {
-        Espresso.unregisterIdlingResources(rxIdlingResource);
         RxJavaPlugins.reset();
     }
 
     @Test
     public void test_wait_debounce() {
-        onView(withId(R.id.button_debounce)).perform(click());
+        onView(ViewMatchers.withId(R.id.button_debounce)).perform(click());
 
         // In this case, CountingIdlingResource has no effect.
         // Use UiDevice.wait() of UIAutomator instead.
@@ -86,15 +86,10 @@ public class RxJava2ActivityCountingIdlingResourceTest {
                 .check(matches(withText("Sleep Completed")));
     }
 
-    private void decorateScheduledActionWithIdlingResource(CountingIdlingResource countingIdlingResource) {
-        RxJavaPlugins.setScheduleHandler(oldAction -> () -> {
-            try {
-                countingIdlingResource.increment();
-                oldAction.run();
-            } finally {
-                countingIdlingResource.decrement();
-            }
-        });
+    private void replaceRxSchedulerWithAsyncTask() {
+        RxJavaPlugins.setComputationSchedulerHandler(old -> Schedulers.from(AsyncTask.THREAD_POOL_EXECUTOR));
+        RxJavaPlugins.setIoSchedulerHandler(old -> Schedulers.from(AsyncTask.THREAD_POOL_EXECUTOR));
+        RxJavaPlugins.setNewThreadSchedulerHandler(old -> Schedulers.from(AsyncTask.THREAD_POOL_EXECUTOR));
     }
 
     private void setUpUiAutomator() {

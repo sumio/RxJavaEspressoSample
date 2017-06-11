@@ -14,11 +14,14 @@
  * limitations under the License.
  */
 
-package jp.jun_nama.rxjavaespressosample;
+package jp.jun_nama.rxjavaespressosample.rxjava1;
 
 
 import android.os.AsyncTask;
 import android.support.test.InstrumentationRegistry;
+import android.support.test.espresso.Espresso;
+import android.support.test.espresso.idling.CountingIdlingResource;
+import android.support.test.espresso.matcher.ViewMatchers;
 import android.support.test.rule.ActivityTestRule;
 import android.support.test.runner.AndroidJUnit4;
 import android.support.test.uiautomator.By;
@@ -31,8 +34,10 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
-import io.reactivex.plugins.RxJavaPlugins;
-import io.reactivex.schedulers.Schedulers;
+import jp.jun_nama.rxjavaespressosample.R;
+import jp.jun_nama.rxjavaespressosample.RxJava1Activity;
+import rx.plugins.RxJavaHooks;
+import rx.schedulers.Schedulers;
 
 import static android.support.test.espresso.Espresso.onView;
 import static android.support.test.espresso.action.ViewActions.click;
@@ -41,11 +46,11 @@ import static android.support.test.espresso.matcher.ViewMatchers.withId;
 import static android.support.test.espresso.matcher.ViewMatchers.withText;
 
 @RunWith(AndroidJUnit4.class)
-public class RxJava2ActivityAsyncTaskExecutorTest {
+public class ActivityAsyncTaskExecutorTest {
     private UiDevice uiDevice;
 
     @Rule
-    public ActivityTestRule<RxJava2Activity> activityTestRule = new ActivityTestRule<>(RxJava2Activity.class, false, false);
+    public ActivityTestRule<RxJava1Activity> activityTestRule = new ActivityTestRule<>(RxJava1Activity.class, false, false);
 
     @Before
     public void setUp() throws Exception {
@@ -62,12 +67,12 @@ public class RxJava2ActivityAsyncTaskExecutorTest {
 
     @After
     public void tearDown() throws Exception {
-        RxJavaPlugins.reset();
+        RxJavaHooks.reset();
     }
 
     @Test
     public void test_wait_debounce() {
-        onView(withId(R.id.button_debounce)).perform(click());
+        onView(ViewMatchers.withId(R.id.button_debounce)).perform(click());
 
         // In this case, CountingIdlingResource has no effect.
         // Use UiDevice.wait() of UIAutomator instead.
@@ -84,9 +89,9 @@ public class RxJava2ActivityAsyncTaskExecutorTest {
     }
 
     private void replaceRxSchedulerWithAsyncTask() {
-        RxJavaPlugins.setComputationSchedulerHandler(old -> Schedulers.from(AsyncTask.THREAD_POOL_EXECUTOR));
-        RxJavaPlugins.setIoSchedulerHandler(old -> Schedulers.from(AsyncTask.THREAD_POOL_EXECUTOR));
-        RxJavaPlugins.setNewThreadSchedulerHandler(old -> Schedulers.from(AsyncTask.THREAD_POOL_EXECUTOR));
+        RxJavaHooks.setOnComputationScheduler(old -> Schedulers.from(AsyncTask.THREAD_POOL_EXECUTOR));
+        RxJavaHooks.setOnIOScheduler(old -> Schedulers.from(AsyncTask.THREAD_POOL_EXECUTOR));
+        RxJavaHooks.setOnNewThreadScheduler(old -> Schedulers.from(AsyncTask.THREAD_POOL_EXECUTOR));
     }
 
     private void setUpUiAutomator() {
